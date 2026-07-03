@@ -12,6 +12,7 @@ export default class ScriptMenusPlugin extends Plugin {
     this.addSettingTab(new ScriptMenusSettingTab(this.app, this));
 
     this.registerDomEvent(document, "contextmenu", (ev: MouseEvent) => {
+      dismissAllMenus();
       const view = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (!view) return;
       if (view.getMode() !== "source") return;

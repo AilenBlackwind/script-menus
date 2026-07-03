@@ -3294,6 +3294,7 @@ var ScriptMenusPlugin = class extends import_obsidian4.Plugin {
     await this.loadSettings();
     this.addSettingTab(new ScriptMenusSettingTab(this.app, this));
     this.registerDomEvent(document, "contextmenu", (ev) => {
+      dismissAllMenus();
       const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
       if (!view)
         return;
