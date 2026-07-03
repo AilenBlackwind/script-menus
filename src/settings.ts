@@ -207,10 +207,17 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
         }
 
         const addCmdRow = sectionDiv.createDiv();
-        addCmdRow.style.marginTop = "4px";
+        addCmdRow.style.cssText = "display: flex; gap: 8px; margin-top: 4px;";
         const addCmdBtn = addCmdRow.createEl("button", { text: "+ Add command" });
         addCmdBtn.onclick = async () => {
           entries.push({ label: "New command", commandId: "" });
+          this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
+          await this.plugin.saveSettings();
+          renderSubmenuSections();
+        };
+        const addSepBtn = addCmdRow.createEl("button", { text: "+ Separator" });
+        addSepBtn.onclick = async () => {
+          entries.push({ label: "", commandId: "", isSeparator: true });
           this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
           await this.plugin.saveSettings();
           renderSubmenuSections();
@@ -263,12 +270,21 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
       }
 
       const addRow = cmdContainer.createDiv();
-      addRow.style.marginTop = "8px";
+      addRow.style.cssText = "display: flex; gap: 8px; margin-top: 8px;";
       const addBtn = addRow.createEl("button", { text: "+ Add command" });
       addBtn.onclick = async () => {
         this.plugin.settings.profiles[profileIndex].mainMenuCommands = [
           ...this.plugin.settings.profiles[profileIndex].mainMenuCommands,
           { label: "New command", commandId: "" },
+        ];
+        await this.plugin.saveSettings();
+        render();
+      };
+      const addSepBtn = addRow.createEl("button", { text: "+ Separator" });
+      addSepBtn.onclick = async () => {
+        this.plugin.settings.profiles[profileIndex].mainMenuCommands = [
+          ...this.plugin.settings.profiles[profileIndex].mainMenuCommands,
+          { label: "", commandId: "", isSeparator: true },
         ];
         await this.plugin.saveSettings();
         render();
@@ -285,6 +301,31 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
     getList: () => ScriptEntry[],
     onRemove?: () => void
   ): void {
+    const entry = list[index];
+
+    if (entry.isSeparator) {
+      const row = container.createDiv();
+      row.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
+
+      const sepIcon = row.createSpan();
+      sepIcon.style.cssText = "width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted);";
+      sepIcon.setText("—");
+
+      const sepLabel = row.createEl("span", { text: "Separator" });
+      sepLabel.style.cssText = "flex: 1; color: var(--text-muted); font-size: 12px; font-style: italic;";
+
+      const removeBtn = row.createEl("button", { text: "×" });
+      removeBtn.style.cssText = "background: transparent; border: none; cursor: pointer; color: var(--text-muted);";
+      removeBtn.onclick = async () => {
+        const updated = [...list.slice(0, index), ...list.slice(index + 1)];
+        for (let j = 0; j < updated.length; j++) list[j] = updated[j];
+        list.length = updated.length;
+        await this.plugin.saveSettings();
+        if (onRemove) onRemove();
+      };
+      return;
+    }
+
     const row = container.createDiv();
     row.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
 

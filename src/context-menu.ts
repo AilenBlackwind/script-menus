@@ -73,24 +73,24 @@ function buildMenu(profile: MenuProfile, app: App): HTMLElement {
   const menu = document.createElement("div");
   menu.className = "sm-menu";
 
-  if (profile.mainMenuCommands.length === 0 && Object.keys(profile.submenus).length === 0) {
+  const validMain = profile.mainMenuCommands.filter((e) => e.commandId || e.isSeparator);
+
+  const validSubmenus = Object.entries(profile.submenus).filter(([, entries]) =>
+    entries.some((e) => e.commandId || e.isSeparator)
+  );
+
+  if (validMain.length === 0 && validSubmenus.length === 0) {
     const empty = menu.createDiv({ cls: "sm-menu-empty", text: "No commands configured" });
     empty.style.cssText = "padding: 12px 16px; color: var(--text-muted); font-size: 12px; text-align: center;";
     return menu;
   }
 
-  for (const cmd of profile.mainMenuCommands) {
-    if (!cmd.commandId) continue;
+  for (const cmd of validMain) {
     menu.appendChild(createItem(cmd, app));
   }
 
-  if (profile.mainMenuCommands.length > 0 && Object.keys(profile.submenus).length > 0) {
-    menu.appendChild(createSeparator());
-  }
-
-  for (const [groupName, entries] of Object.entries(profile.submenus)) {
-    const valid = entries.filter((e) => e.commandId);
-    if (valid.length === 0) continue;
+  for (const [groupName, entries] of validSubmenus) {
+    const valid = entries.filter((e) => e.commandId || e.isSeparator);
     menu.appendChild(createGroup(groupName, valid, app));
   }
 
@@ -98,6 +98,8 @@ function buildMenu(profile: MenuProfile, app: App): HTMLElement {
 }
 
 function createItem(entry: ScriptEntry, app: App): HTMLElement {
+  if (entry.isSeparator) return createSeparator();
+
   const item = document.createElement("div");
   item.className = "sm-menu-item";
 

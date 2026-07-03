@@ -1684,10 +1684,17 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
           this.renderEntryRow(entriesDiv, entries, i, () => this.plugin.settings.profiles[profileIndex].submenus[sectionName], renderSubmenuSections);
         }
         const addCmdRow = sectionDiv.createDiv();
-        addCmdRow.style.marginTop = "4px";
+        addCmdRow.style.cssText = "display: flex; gap: 8px; margin-top: 4px;";
         const addCmdBtn = addCmdRow.createEl("button", { text: "+ Add command" });
         addCmdBtn.onclick = async () => {
           entries.push({ label: "New command", commandId: "" });
+          this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
+          await this.plugin.saveSettings();
+          renderSubmenuSections();
+        };
+        const addSepBtn = addCmdRow.createEl("button", { text: "+ Separator" });
+        addSepBtn.onclick = async () => {
+          entries.push({ label: "", commandId: "", isSeparator: true });
           this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
           await this.plugin.saveSettings();
           renderSubmenuSections();
@@ -1732,7 +1739,7 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
         this.renderEntryRow(cmdContainer, list, i, () => this.plugin.settings.profiles[profileIndex].mainMenuCommands, render);
       }
       const addRow = cmdContainer.createDiv();
-      addRow.style.marginTop = "8px";
+      addRow.style.cssText = "display: flex; gap: 8px; margin-top: 8px;";
       const addBtn = addRow.createEl("button", { text: "+ Add command" });
       addBtn.onclick = async () => {
         this.plugin.settings.profiles[profileIndex].mainMenuCommands = [
@@ -1742,10 +1749,41 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
         await this.plugin.saveSettings();
         render();
       };
+      const addSepBtn = addRow.createEl("button", { text: "+ Separator" });
+      addSepBtn.onclick = async () => {
+        this.plugin.settings.profiles[profileIndex].mainMenuCommands = [
+          ...this.plugin.settings.profiles[profileIndex].mainMenuCommands,
+          { label: "", commandId: "", isSeparator: true }
+        ];
+        await this.plugin.saveSettings();
+        render();
+      };
     };
     render();
   }
   renderEntryRow(container, list, index, getList, onRemove) {
+    const entry = list[index];
+    if (entry.isSeparator) {
+      const row2 = container.createDiv();
+      row2.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
+      const sepIcon = row2.createSpan();
+      sepIcon.style.cssText = "width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted);";
+      sepIcon.setText("\u2014");
+      const sepLabel = row2.createEl("span", { text: "Separator" });
+      sepLabel.style.cssText = "flex: 1; color: var(--text-muted); font-size: 12px; font-style: italic;";
+      const removeBtn2 = row2.createEl("button", { text: "\xD7" });
+      removeBtn2.style.cssText = "background: transparent; border: none; cursor: pointer; color: var(--text-muted);";
+      removeBtn2.onclick = async () => {
+        const updated = [...list.slice(0, index), ...list.slice(index + 1)];
+        for (let j = 0; j < updated.length; j++)
+          list[j] = updated[j];
+        list.length = updated.length;
+        await this.plugin.saveSettings();
+        if (onRemove)
+          onRemove();
+      };
+      return;
+    }
     const row = container.createDiv();
     row.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
     const labelInput = row.createEl("input", { type: "text" });
@@ -3174,28 +3212,27 @@ function showContextMenu(ev, profile, app) {
 function buildMenu(profile, app) {
   const menu = document.createElement("div");
   menu.className = "sm-menu";
-  if (profile.mainMenuCommands.length === 0 && Object.keys(profile.submenus).length === 0) {
+  const validMain = profile.mainMenuCommands.filter((e) => e.commandId || e.isSeparator);
+  const validSubmenus = Object.entries(profile.submenus).filter(
+    ([, entries]) => entries.some((e) => e.commandId || e.isSeparator)
+  );
+  if (validMain.length === 0 && validSubmenus.length === 0) {
     const empty = menu.createDiv({ cls: "sm-menu-empty", text: "No commands configured" });
     empty.style.cssText = "padding: 12px 16px; color: var(--text-muted); font-size: 12px; text-align: center;";
     return menu;
   }
-  for (const cmd of profile.mainMenuCommands) {
-    if (!cmd.commandId)
-      continue;
+  for (const cmd of validMain) {
     menu.appendChild(createItem(cmd, app));
   }
-  if (profile.mainMenuCommands.length > 0 && Object.keys(profile.submenus).length > 0) {
-    menu.appendChild(createSeparator());
-  }
-  for (const [groupName, entries] of Object.entries(profile.submenus)) {
-    const valid = entries.filter((e) => e.commandId);
-    if (valid.length === 0)
-      continue;
+  for (const [groupName, entries] of validSubmenus) {
+    const valid = entries.filter((e) => e.commandId || e.isSeparator);
     menu.appendChild(createGroup(groupName, valid, app));
   }
   return menu;
 }
 function createItem(entry, app) {
+  if (entry.isSeparator)
+    return createSeparator();
   const item = document.createElement("div");
   item.className = "sm-menu-item";
   if (entry.color) {
