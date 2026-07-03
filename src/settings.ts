@@ -1,5 +1,5 @@
 import { PluginSettingTab, Setting, App, setIcon } from "obsidian";
-import { CommandSuggestModal, IconInputModal } from "./modal";
+import { CommandSuggestModal, IconSuggestModal } from "./modal";
 import type ScriptMenusPlugin from "./main";
 
 export interface ScriptEntry {
@@ -305,8 +305,8 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
     };
     renderIcon();
     iconBtn.onclick = () => {
-      new IconInputModal(this.app, list[index].icon || "", (iconName) => {
-        list[index].icon = iconName || undefined;
+      new IconSuggestModal(this.app, (iconName) => {
+        list[index].icon = iconName;
         getList();
         renderIcon();
         this.plugin.saveSettings();

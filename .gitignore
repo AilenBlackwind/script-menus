@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Generated icon list (auto-fetched via scripts/fetch-icons.mjs)
+src/generated/
+
 # Source maps (generated during dev build)
 main.js.map
 

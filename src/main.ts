@@ -14,25 +14,24 @@ export default class ScriptMenusPlugin extends Plugin {
     this.registerDomEvent(document, "contextmenu", (ev: MouseEvent) => {
       const view = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (!view) return;
-
       if (view.getMode() !== "source") return;
 
-      if (!view.contentEl.contains(ev.target as Node)) return;
-
-      for (const profile of this.settings.profiles) {
-        if (
-          ev.altKey === profile.modifiers.alt &&
-          ev.ctrlKey === profile.modifiers.ctrl &&
-          ev.shiftKey === profile.modifiers.shift &&
-          ev.metaKey === profile.modifiers.meta
-        ) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          showContextMenu(ev, profile, this.app);
-          return;
+      try {
+        for (const profile of this.settings.profiles) {
+          if (
+            ev.altKey === profile.modifiers.alt &&
+            ev.ctrlKey === profile.modifiers.ctrl &&
+            ev.shiftKey === profile.modifiers.shift &&
+            ev.metaKey === profile.modifiers.meta
+          ) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            showContextMenu(ev, profile, this.app);
+            return;
+          }
         }
-      }
-    });
+      } catch {}
+    }, true);
   }
 
   onunload(): void {
