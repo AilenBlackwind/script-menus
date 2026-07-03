@@ -3,7 +3,7 @@
   z-index: var(--layer-menu);
   min-width: 180px;
   max-width: 320px;
-  background: var(--background-primary);
+  background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -81,7 +81,7 @@
   left: 100%;
   margin-left: 4px;
   min-width: 160px;
-  background: var(--background-primary);
+  background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
