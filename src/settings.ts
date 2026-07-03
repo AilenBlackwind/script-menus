@@ -6,6 +6,7 @@ export interface ScriptEntry {
   label: string;
   commandId: string;
   icon?: string;
+  color?: string;
 }
 
 export interface ModifierConfig {
@@ -311,6 +312,24 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
         renderIcon();
         this.plugin.saveSettings();
       }).open();
+    };
+
+    const colorInput = row.createEl("input", { type: "color" });
+    colorInput.value = list[index].color || "#000000";
+    colorInput.title = "Item color";
+    colorInput.style.cssText = "width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
+    colorInput.onchange = () => {
+      list[index].color = colorInput.value;
+      this.plugin.saveSettings();
+    };
+
+    const clearColorBtn = row.createEl("button", { text: "×" });
+    clearColorBtn.title = "Clear color";
+    clearColorBtn.style.cssText = "width: 20px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+    clearColorBtn.onclick = async () => {
+      list[index].color = undefined;
+      colorInput.value = "#000000";
+      this.plugin.saveSettings();
     };
 
     const cmdInput = row.createEl("input", { type: "text" });

@@ -1772,6 +1772,22 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
         this.plugin.saveSettings();
       }).open();
     };
+    const colorInput = row.createEl("input", { type: "color" });
+    colorInput.value = list[index].color || "#000000";
+    colorInput.title = "Item color";
+    colorInput.style.cssText = "width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
+    colorInput.onchange = () => {
+      list[index].color = colorInput.value;
+      this.plugin.saveSettings();
+    };
+    const clearColorBtn = row.createEl("button", { text: "\xD7" });
+    clearColorBtn.title = "Clear color";
+    clearColorBtn.style.cssText = "width: 20px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+    clearColorBtn.onclick = async () => {
+      list[index].color = void 0;
+      colorInput.value = "#000000";
+      this.plugin.saveSettings();
+    };
     const cmdInput = row.createEl("input", { type: "text" });
     cmdInput.value = list[index].commandId;
     cmdInput.style.cssText = "flex: 1; background: var(--background-primary);";
@@ -3182,14 +3198,20 @@ function buildMenu(profile, app) {
 function createItem(entry, app) {
   const item = document.createElement("div");
   item.className = "sm-menu-item";
+  if (entry.color) {
+    item.style.color = entry.color;
+  }
   if (entry.icon) {
     const iconEl = item.createSpan({ cls: "sm-menu-item-icon" });
+    if (entry.color) {
+      iconEl.style.color = entry.color;
+    }
     try {
       (0, import_obsidian3.setIcon)(iconEl, entry.icon);
     } catch (e) {
     }
   }
-  item.createSpan({ cls: "sm-menu-item-label", text: entry.label });
+  const label = item.createSpan({ cls: "sm-menu-item-label", text: entry.label });
   item.addEventListener("click", (e) => {
     e.stopPropagation();
     dismissAllMenus();

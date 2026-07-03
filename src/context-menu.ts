@@ -101,12 +101,19 @@ function createItem(entry: ScriptEntry, app: App): HTMLElement {
   const item = document.createElement("div");
   item.className = "sm-menu-item";
 
+  if (entry.color) {
+    item.style.color = entry.color;
+  }
+
   if (entry.icon) {
     const iconEl = item.createSpan({ cls: "sm-menu-item-icon" });
+    if (entry.color) {
+      iconEl.style.color = entry.color;
+    }
     try { setIcon(iconEl, entry.icon); } catch {}
   }
 
-  item.createSpan({ cls: "sm-menu-item-label", text: entry.label });
+  const label = item.createSpan({ cls: "sm-menu-item-label", text: entry.label });
 
   item.addEventListener("click", (e) => {
     e.stopPropagation();
