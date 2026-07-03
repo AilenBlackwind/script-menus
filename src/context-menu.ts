@@ -29,6 +29,7 @@ function clearTimeouts(el: HTMLElement): void {
 }
 
 export function showContextMenu(ev: MouseEvent, profile: MenuProfile, app: App): void {
+  dismissAllMenus();
   const bodyZoom = parseFloat((document.body.style as any).zoom) || 1;
   const x = ev.clientX / bodyZoom;
   const y = ev.clientY / bodyZoom;

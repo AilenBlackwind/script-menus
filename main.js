@@ -3120,6 +3120,7 @@ function clearTimeouts(el) {
   });
 }
 function showContextMenu(ev, profile, app) {
+  dismissAllMenus();
   const bodyZoom = parseFloat(document.body.style.zoom) || 1;
   const x = ev.clientX / bodyZoom;
   const y = ev.clientY / bodyZoom;
