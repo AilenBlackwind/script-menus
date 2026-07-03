@@ -4,9 +4,9 @@
   min-width: 180px;
   max-width: 320px;
   background: var(--background-primary);
-  border: 1px solid var(--background-modifier-border-hover, var(--background-modifier-border));
-  border-radius: var(--radius-l);
-  box-shadow: 0 4px 12px var(--shadow-l, rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: var(--size-4-1);
   user-select: none;
   font-size: var(--font-ui-small);
@@ -21,6 +21,7 @@
   border-radius: var(--radius-s);
   transition: background-color 80ms ease;
   white-space: nowrap;
+  color: var(--text-normal);
 }
 
 .sm-menu-item:hover {
@@ -60,6 +61,7 @@
   padding: var(--size-4-1) var(--size-4-2);
   cursor: pointer;
   border-radius: var(--radius-s);
+  color: var(--text-normal);
 }
 
 .sm-group-trigger:hover {
@@ -80,9 +82,9 @@
   margin-left: 4px;
   min-width: 160px;
   background: var(--background-primary);
-  border: 1px solid var(--background-modifier-border-hover, var(--background-modifier-border));
-  border-radius: var(--radius-l);
-  box-shadow: 0 4px 12px var(--shadow-l, rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: var(--size-4-1);
   display: none;
   z-index: calc(var(--layer-menu) + 1);
