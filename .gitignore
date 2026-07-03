@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Source maps (generated during dev build)
+main.js.map
+
+# Obsidian user data (per-vault, never commit)
+data.json
+
+# Logs / editor
+*.log
+.DS_Store
+.idea/
+.vscode/

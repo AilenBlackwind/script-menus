@@ -1,0 +1,9 @@
+{
+  "id": "script-menus",
+  "name": "Script Menus",
+  "version": "0.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "Custom context menus triggered by modifier keys + right-click in editor. Add your own commands/scripts.",
+  "author": "tovey",
+  "isDesktopOnly": false
+}
