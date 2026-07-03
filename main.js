@@ -1763,9 +1763,37 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
   }
   renderEntryRow(container, list, index, getList, onRemove) {
     const entry = list[index];
+    const swap = (i, j) => {
+      const tmp = list[i];
+      list[i] = list[j];
+      list[j] = tmp;
+    };
+    const createMoveButtons = (row2) => {
+      const moveUp = row2.createEl("button", { text: "\u25B2" });
+      moveUp.style.cssText = "width: 22px; height: 22px; padding: 0; border: 1px solid var(--background-modifier-border); border-radius: 3px; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+      moveUp.title = "Move up";
+      moveUp.disabled = index === 0;
+      moveUp.onclick = async () => {
+        swap(index, index - 1);
+        await this.plugin.saveSettings();
+        if (onRemove)
+          onRemove();
+      };
+      const moveDown = row2.createEl("button", { text: "\u25BC" });
+      moveDown.style.cssText = "width: 22px; height: 22px; padding: 0; border: 1px solid var(--background-modifier-border); border-radius: 3px; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+      moveDown.title = "Move down";
+      moveDown.disabled = index === list.length - 1;
+      moveDown.onclick = async () => {
+        swap(index, index + 1);
+        await this.plugin.saveSettings();
+        if (onRemove)
+          onRemove();
+      };
+    };
     if (entry.isSeparator) {
       const row2 = container.createDiv();
       row2.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
+      createMoveButtons(row2);
       const sepIcon = row2.createSpan();
       sepIcon.style.cssText = "width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted);";
       sepIcon.setText("\u2014");
@@ -1786,6 +1814,7 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
     }
     const row = container.createDiv();
     row.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
+    createMoveButtons(row);
     const labelInput = row.createEl("input", { type: "text" });
     labelInput.value = list[index].label;
     labelInput.style.cssText = "flex: 1; background: var(--background-primary);";

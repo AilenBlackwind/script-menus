@@ -303,9 +303,38 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
   ): void {
     const entry = list[index];
 
+    const swap = (i: number, j: number) => {
+      const tmp = list[i];
+      list[i] = list[j];
+      list[j] = tmp;
+    };
+
+    const createMoveButtons = (row: HTMLElement) => {
+      const moveUp = row.createEl("button", { text: "▲" });
+      moveUp.style.cssText = "width: 22px; height: 22px; padding: 0; border: 1px solid var(--background-modifier-border); border-radius: 3px; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+      moveUp.title = "Move up";
+      moveUp.disabled = index === 0;
+      moveUp.onclick = async () => {
+        swap(index, index - 1);
+        await this.plugin.saveSettings();
+        if (onRemove) onRemove();
+      };
+
+      const moveDown = row.createEl("button", { text: "▼" });
+      moveDown.style.cssText = "width: 22px; height: 22px; padding: 0; border: 1px solid var(--background-modifier-border); border-radius: 3px; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+      moveDown.title = "Move down";
+      moveDown.disabled = index === list.length - 1;
+      moveDown.onclick = async () => {
+        swap(index, index + 1);
+        await this.plugin.saveSettings();
+        if (onRemove) onRemove();
+      };
+    };
+
     if (entry.isSeparator) {
       const row = container.createDiv();
       row.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
+      createMoveButtons(row);
 
       const sepIcon = row.createSpan();
       sepIcon.style.cssText = "width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted);";
@@ -328,6 +357,7 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
 
     const row = container.createDiv();
     row.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 4px;";
+    createMoveButtons(row);
 
     const labelInput = row.createEl("input", { type: "text" });
     labelInput.value = list[index].label;
