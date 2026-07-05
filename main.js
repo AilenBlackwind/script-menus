@@ -3256,9 +3256,10 @@ function showContextMenu(ev, profile, app) {
   };
   computePosition2(virtualEl, menuEl, {
     placement: "bottom-start",
+    strategy: "fixed",
     middleware: [
       offset2(4),
-      flip2({ padding: 10 }),
+      flip2(),
       shift2({ padding: 10 }),
       size2({
         apply({ availableHeight, elements }) {
@@ -3367,9 +3368,10 @@ function createGroup(section, entries, app) {
     document.body.appendChild(submenu);
     computePosition2(trigger, submenu, {
       placement: "right-start",
+      strategy: "fixed",
       middleware: [
         offset2(4),
-        flip2({ padding: 10 }),
+        flip2(),
         shift2({ padding: 10 }),
         size2({
           apply({ availableHeight }) {

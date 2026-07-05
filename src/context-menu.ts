@@ -47,12 +47,13 @@ export function showContextMenu(ev: MouseEvent, profile: MenuProfile, app: App):
 
   computePosition(virtualEl, menuEl, {
     placement: "bottom-start",
+    strategy: "fixed",
     middleware: [
       offset(4),
-      flip({ padding: 10 }),
+      flip(),
       shift({ padding: 10 }),
       size({
-        apply({ availableHeight, elements }: { availableHeight: number; availableWidth: number; elements: any }) {
+        apply({ availableHeight, elements }) {
           elements.floating.style.maxHeight = `${Math.max(Math.min(availableHeight - 16, 600), 100)}px`;
           elements.floating.style.overflowY = "auto";
         },
@@ -171,9 +172,10 @@ function createGroup(section: SubmenuSection, entries: ScriptEntry[], app: App):
     document.body.appendChild(submenu);
     computePosition(trigger, submenu, {
       placement: "right-start",
+      strategy: "fixed",
       middleware: [
         offset(4),
-        flip({ padding: 10 }),
+        flip(),
         shift({ padding: 10 }),
         size({
           apply({ availableHeight }) {
