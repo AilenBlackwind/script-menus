@@ -7,6 +7,14 @@ export interface ScriptEntry {
   commandId: string;
   icon?: string;
   color?: string;
+  isSeparator?: boolean;
+}
+
+export interface SubmenuSection {
+  label: string;
+  icon?: string;
+  color?: string;
+  entries: ScriptEntry[];
 }
 
 export interface ModifierConfig {
@@ -19,7 +27,7 @@ export interface ModifierConfig {
 export interface MenuProfile {
   name: string;
   modifiers: ModifierConfig;
-  submenus: Record<string, ScriptEntry[]>;
+  submenus: SubmenuSection[];
   mainMenuCommands: ScriptEntry[];
 }
 
@@ -32,7 +40,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     {
       name: "Main",
       modifiers: { alt: true, ctrl: false, shift: false, meta: false },
-      submenus: {},
+      submenus: [],
       mainMenuCommands: [],
     },
   ],
@@ -180,7 +188,9 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
       const existing = sectionContainer.querySelectorAll(".sm-submenu-section");
       Array.from(existing).forEach((el) => el.remove());
 
-      for (const [sectionName, entries] of Object.entries(profile.submenus)) {
+      for (let si = 0; si < profile.submenus.length; si++) {
+        const section = profile.submenus[si];
+
         const sectionDiv = sectionContainer.createDiv();
         sectionDiv.className = "sm-submenu-section";
         sectionDiv.style.cssText = "margin-bottom: 8px; border: 1px solid var(--background-modifier-border); border-radius: 4px; padding: 8px;";
@@ -188,37 +198,81 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
         const headerRow = sectionDiv.createDiv();
         headerRow.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 8px;";
 
-        const title = headerRow.createEl("span", { text: sectionName });
-        title.style.cssText = "font-weight: bold; flex: 1;";
+        const iconBtn = headerRow.createEl("button");
+        iconBtn.style.cssText = "width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--background-modifier-border); border-radius: 4px; cursor: pointer; color: var(--text-muted); flex-shrink: 0; font-size: 11px;";
+        iconBtn.title = "Section icon";
+        const renderSectionIcon = () => {
+          iconBtn.empty();
+          if (section.icon) {
+            setIcon(iconBtn, section.icon);
+          } else {
+            iconBtn.setText("◎");
+          }
+        };
+        renderSectionIcon();
+        iconBtn.onclick = () => {
+          new IconSuggestModal(this.app, (iconName) => {
+            section.icon = iconName;
+            profile.submenus = [...profile.submenus];
+            renderSectionIcon();
+            this.plugin.saveSettings();
+          }).open();
+        };
 
-        const removeBtn = headerRow.createEl("button", { text: "× Remove section" });
-        removeBtn.style.cssText = "background: transparent; border: none; cursor: pointer; color: var(--text-muted); font-size: 12px;";
+        const colorInput = headerRow.createEl("input", { type: "color" });
+        colorInput.value = section.color || "#000000";
+        colorInput.title = "Section color";
+        colorInput.style.cssText = "width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
+        colorInput.onchange = () => {
+          section.color = colorInput.value;
+          this.plugin.saveSettings();
+        };
+
+        const clearColorBtn = headerRow.createEl("button", { text: "×" });
+        clearColorBtn.title = "Clear color";
+        clearColorBtn.style.cssText = "width: 18px; height: 22px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+        clearColorBtn.onclick = async () => {
+          section.color = undefined;
+          colorInput.value = "#000000";
+          this.plugin.saveSettings();
+        };
+
+        const title = headerRow.createEl("input", { type: "text", value: section.label });
+        title.style.cssText = "font-weight: bold; flex: 1; background: var(--background-primary);";
+        title.placeholder = "Section name";
+        title.onchange = async () => {
+          section.label = title.value;
+          await this.plugin.saveSettings();
+        };
+
+        const removeBtn = headerRow.createEl("button", { text: "×" });
+        removeBtn.style.cssText = "background: transparent; border: none; cursor: pointer; color: var(--text-muted); font-size: 14px;";
+        removeBtn.title = "Remove section";
         removeBtn.onclick = async () => {
-          const next = { ...this.plugin.settings.profiles[profileIndex].submenus };
-          delete next[sectionName];
-          this.plugin.settings.profiles[profileIndex].submenus = next;
+          profile.submenus = profile.submenus.filter((_, i) => i !== si);
           await this.plugin.saveSettings();
           renderSubmenuSections();
         };
 
         const entriesDiv = sectionDiv.createDiv();
-        for (let i = 0; i < entries.length; i++) {
-          this.renderEntryRow(entriesDiv, entries, i, () => this.plugin.settings.profiles[profileIndex].submenus[sectionName], renderSubmenuSections);
+        const sectionEntries = section.entries;
+        for (let i = 0; i < sectionEntries.length; i++) {
+          this.renderEntryRow(entriesDiv, sectionEntries, i, () => profile.submenus[si].entries, renderSubmenuSections);
         }
 
         const addCmdRow = sectionDiv.createDiv();
         addCmdRow.style.cssText = "display: flex; gap: 8px; margin-top: 4px;";
         const addCmdBtn = addCmdRow.createEl("button", { text: "+ Add command" });
         addCmdBtn.onclick = async () => {
-          entries.push({ label: "New command", commandId: "" });
-          this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
+          sectionEntries.push({ label: "New command", commandId: "" });
+          profile.submenus = [...profile.submenus];
           await this.plugin.saveSettings();
           renderSubmenuSections();
         };
         const addSepBtn = addCmdRow.createEl("button", { text: "+ Separator" });
         addSepBtn.onclick = async () => {
-          entries.push({ label: "", commandId: "", isSeparator: true });
-          this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
+          sectionEntries.push({ label: "", commandId: "", isSeparator: true });
+          profile.submenus = [...profile.submenus];
           await this.plugin.saveSettings();
           renderSubmenuSections();
         };
@@ -236,11 +290,8 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
     addBtn.onclick = async () => {
       const name = sectionNameInput.value.trim();
       if (!name) return;
-      if (profile.submenus[name]) return;
-      this.plugin.settings.profiles[profileIndex].submenus = {
-        ...this.plugin.settings.profiles[profileIndex].submenus,
-        [name]: [],
-      };
+      if (profile.submenus.some((s) => s.label === name)) return;
+      profile.submenus = [...profile.submenus, { label: name, entries: [] }];
       await this.plugin.saveSettings();
       sectionNameInput.value = "";
       renderSubmenuSections();

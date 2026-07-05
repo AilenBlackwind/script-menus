@@ -76,10 +76,6 @@
 }
 
 .sm-submenu {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 4px;
   min-width: 160px;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
@@ -87,7 +83,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: var(--size-4-1);
   display: none;
-  z-index: calc(var(--layer-menu) + 1);
 }
 
 .sm-submenu-visible {

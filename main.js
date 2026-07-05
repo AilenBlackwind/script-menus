@@ -1543,7 +1543,7 @@ var DEFAULT_SETTINGS = {
     {
       name: "Main",
       modifiers: { alt: true, ctrl: false, shift: false, meta: false },
-      submenus: {},
+      submenus: [],
       mainMenuCommands: []
     }
   ]
@@ -1662,40 +1662,82 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
     const renderSubmenuSections = () => {
       const existing = sectionContainer.querySelectorAll(".sm-submenu-section");
       Array.from(existing).forEach((el) => el.remove());
-      for (const [sectionName, entries] of Object.entries(profile.submenus)) {
+      for (let si = 0; si < profile.submenus.length; si++) {
+        const section = profile.submenus[si];
         const sectionDiv = sectionContainer.createDiv();
         sectionDiv.className = "sm-submenu-section";
         sectionDiv.style.cssText = "margin-bottom: 8px; border: 1px solid var(--background-modifier-border); border-radius: 4px; padding: 8px;";
         const headerRow = sectionDiv.createDiv();
         headerRow.style.cssText = "display: flex; gap: 8px; align-items: center; margin-bottom: 8px;";
-        const title = headerRow.createEl("span", { text: sectionName });
-        title.style.cssText = "font-weight: bold; flex: 1;";
-        const removeBtn = headerRow.createEl("button", { text: "\xD7 Remove section" });
-        removeBtn.style.cssText = "background: transparent; border: none; cursor: pointer; color: var(--text-muted); font-size: 12px;";
+        const iconBtn = headerRow.createEl("button");
+        iconBtn.style.cssText = "width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--background-modifier-border); border-radius: 4px; cursor: pointer; color: var(--text-muted); flex-shrink: 0; font-size: 11px;";
+        iconBtn.title = "Section icon";
+        const renderSectionIcon = () => {
+          iconBtn.empty();
+          if (section.icon) {
+            (0, import_obsidian2.setIcon)(iconBtn, section.icon);
+          } else {
+            iconBtn.setText("\u25CE");
+          }
+        };
+        renderSectionIcon();
+        iconBtn.onclick = () => {
+          new IconSuggestModal(this.app, (iconName) => {
+            section.icon = iconName;
+            profile.submenus = [...profile.submenus];
+            renderSectionIcon();
+            this.plugin.saveSettings();
+          }).open();
+        };
+        const colorInput = headerRow.createEl("input", { type: "color" });
+        colorInput.value = section.color || "#000000";
+        colorInput.title = "Section color";
+        colorInput.style.cssText = "width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
+        colorInput.onchange = () => {
+          section.color = colorInput.value;
+          this.plugin.saveSettings();
+        };
+        const clearColorBtn = headerRow.createEl("button", { text: "\xD7" });
+        clearColorBtn.title = "Clear color";
+        clearColorBtn.style.cssText = "width: 18px; height: 22px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
+        clearColorBtn.onclick = async () => {
+          section.color = void 0;
+          colorInput.value = "#000000";
+          this.plugin.saveSettings();
+        };
+        const title = headerRow.createEl("input", { type: "text", value: section.label });
+        title.style.cssText = "font-weight: bold; flex: 1; background: var(--background-primary);";
+        title.placeholder = "Section name";
+        title.onchange = async () => {
+          section.label = title.value;
+          await this.plugin.saveSettings();
+        };
+        const removeBtn = headerRow.createEl("button", { text: "\xD7" });
+        removeBtn.style.cssText = "background: transparent; border: none; cursor: pointer; color: var(--text-muted); font-size: 14px;";
+        removeBtn.title = "Remove section";
         removeBtn.onclick = async () => {
-          const next = { ...this.plugin.settings.profiles[profileIndex].submenus };
-          delete next[sectionName];
-          this.plugin.settings.profiles[profileIndex].submenus = next;
+          profile.submenus = profile.submenus.filter((_, i) => i !== si);
           await this.plugin.saveSettings();
           renderSubmenuSections();
         };
         const entriesDiv = sectionDiv.createDiv();
-        for (let i = 0; i < entries.length; i++) {
-          this.renderEntryRow(entriesDiv, entries, i, () => this.plugin.settings.profiles[profileIndex].submenus[sectionName], renderSubmenuSections);
+        const sectionEntries = section.entries;
+        for (let i = 0; i < sectionEntries.length; i++) {
+          this.renderEntryRow(entriesDiv, sectionEntries, i, () => profile.submenus[si].entries, renderSubmenuSections);
         }
         const addCmdRow = sectionDiv.createDiv();
         addCmdRow.style.cssText = "display: flex; gap: 8px; margin-top: 4px;";
         const addCmdBtn = addCmdRow.createEl("button", { text: "+ Add command" });
         addCmdBtn.onclick = async () => {
-          entries.push({ label: "New command", commandId: "" });
-          this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
+          sectionEntries.push({ label: "New command", commandId: "" });
+          profile.submenus = [...profile.submenus];
           await this.plugin.saveSettings();
           renderSubmenuSections();
         };
         const addSepBtn = addCmdRow.createEl("button", { text: "+ Separator" });
         addSepBtn.onclick = async () => {
-          entries.push({ label: "", commandId: "", isSeparator: true });
-          this.plugin.settings.profiles[profileIndex].submenus = { ...this.plugin.settings.profiles[profileIndex].submenus };
+          sectionEntries.push({ label: "", commandId: "", isSeparator: true });
+          profile.submenus = [...profile.submenus];
           await this.plugin.saveSettings();
           renderSubmenuSections();
         };
@@ -1711,12 +1753,9 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
       const name = sectionNameInput.value.trim();
       if (!name)
         return;
-      if (profile.submenus[name])
+      if (profile.submenus.some((s) => s.label === name))
         return;
-      this.plugin.settings.profiles[profileIndex].submenus = {
-        ...this.plugin.settings.profiles[profileIndex].submenus,
-        [name]: []
-      };
+      profile.submenus = [...profile.submenus, { label: name, entries: [] }];
       await this.plugin.saveSettings();
       sectionNameInput.value = "";
       renderSubmenuSections();
@@ -3242,8 +3281,8 @@ function buildMenu(profile, app) {
   const menu = document.createElement("div");
   menu.className = "sm-menu";
   const validMain = profile.mainMenuCommands.filter((e) => e.commandId || e.isSeparator);
-  const validSubmenus = Object.entries(profile.submenus).filter(
-    ([, entries]) => entries.some((e) => e.commandId || e.isSeparator)
+  const validSubmenus = profile.submenus.filter(
+    (s) => s.entries.some((e) => e.commandId || e.isSeparator)
   );
   if (validMain.length === 0 && validSubmenus.length === 0) {
     const empty = menu.createDiv({ cls: "sm-menu-empty", text: "No commands configured" });
@@ -3253,9 +3292,9 @@ function buildMenu(profile, app) {
   for (const cmd of validMain) {
     menu.appendChild(createItem(cmd, app));
   }
-  for (const [groupName, entries] of validSubmenus) {
-    const valid = entries.filter((e) => e.commandId || e.isSeparator);
-    menu.appendChild(createGroup(groupName, valid, app));
+  for (const section of validSubmenus) {
+    const valid = section.entries.filter((e) => e.commandId || e.isSeparator);
+    menu.appendChild(createGroup(section, valid, app));
   }
   return menu;
 }
@@ -3285,21 +3324,35 @@ function createItem(entry, app) {
   });
   return item;
 }
-function createGroup(name, entries, app) {
+function createGroup(section, entries, app) {
   const group = document.createElement("div");
   group.className = "sm-menu-group";
   const trigger = document.createElement("div");
   trigger.className = "sm-menu-item sm-group-trigger";
-  trigger.createSpan({ cls: "sm-menu-item-label", text: name });
+  if (section.color)
+    trigger.style.color = section.color;
+  if (section.icon) {
+    const iconEl = trigger.createSpan({ cls: "sm-menu-item-icon" });
+    if (section.color)
+      iconEl.style.color = section.color;
+    try {
+      (0, import_obsidian3.setIcon)(iconEl, section.icon);
+    } catch (e) {
+    }
+  }
+  trigger.createSpan({ cls: "sm-menu-item-label", text: section.label });
   const arrow2 = trigger.createSpan({ cls: "sm-group-arrow" });
   (0, import_obsidian3.setIcon)(arrow2, "chevron-right");
   const submenu = document.createElement("div");
   submenu.className = "sm-submenu";
+  submenu.setAttribute("data-sm-menu", "");
+  submenu.style.position = "fixed";
+  submenu.style.zIndex = "calc(var(--layer-menu) + 2)";
   for (const entry of entries) {
     submenu.appendChild(createItem(entry, app));
   }
+  submenu.addEventListener("click", (e) => e.stopPropagation());
   group.appendChild(trigger);
-  group.appendChild(submenu);
   let hideTimeout = null;
   let showTimeout = null;
   const saveTimeouts = () => {
@@ -3310,13 +3363,35 @@ function createGroup(name, entries, app) {
       ids.push(hideTimeout);
     group.dataset.smTimeouts = ids.join(",");
   };
+  const positionAndShow = () => {
+    document.body.appendChild(submenu);
+    computePosition2(trigger, submenu, {
+      placement: "right-start",
+      middleware: [
+        offset2(4),
+        flip2({ padding: 10 }),
+        shift2({ padding: 10 }),
+        size2({
+          apply({ availableHeight }) {
+            submenu.style.maxHeight = `${Math.max(Math.min(availableHeight - 16, 600), 100)}px`;
+            submenu.style.overflowY = "auto";
+          },
+          padding: 8
+        })
+      ]
+    }).then(({ x, y }) => {
+      submenu.style.left = `${Math.floor(x)}px`;
+      submenu.style.top = `${Math.floor(y)}px`;
+      submenu.classList.add("sm-submenu-visible");
+    });
+  };
   const show = () => {
     if (hideTimeout !== null)
       clearTimeout(hideTimeout);
     if (showTimeout !== null)
       clearTimeout(showTimeout);
     showTimeout = window.setTimeout(() => {
-      submenu.classList.add("sm-submenu-visible");
+      positionAndShow();
       showTimeout = null;
       saveTimeouts();
     }, 150);
@@ -3329,6 +3404,8 @@ function createGroup(name, entries, app) {
       clearTimeout(hideTimeout);
     hideTimeout = window.setTimeout(() => {
       submenu.classList.remove("sm-submenu-visible");
+      if (submenu.parentElement)
+        submenu.remove();
       hideTimeout = null;
       saveTimeouts();
     }, 200);

@@ -1,6 +1,6 @@
 import { App, setIcon } from "obsidian";
 import { computePosition, flip, shift, offset, size } from "@floating-ui/dom";
-import type { MenuProfile, ScriptEntry } from "./settings";
+import type { MenuProfile, ScriptEntry, SubmenuSection } from "./settings";
 
 export function dismissAllMenus(): void {
   const menus = document.querySelectorAll("[data-sm-menu]");
@@ -75,8 +75,8 @@ function buildMenu(profile: MenuProfile, app: App): HTMLElement {
 
   const validMain = profile.mainMenuCommands.filter((e) => e.commandId || e.isSeparator);
 
-  const validSubmenus = Object.entries(profile.submenus).filter(([, entries]) =>
-    entries.some((e) => e.commandId || e.isSeparator)
+  const validSubmenus = profile.submenus.filter((s) =>
+    s.entries.some((e) => e.commandId || e.isSeparator)
   );
 
   if (validMain.length === 0 && validSubmenus.length === 0) {
@@ -89,9 +89,9 @@ function buildMenu(profile: MenuProfile, app: App): HTMLElement {
     menu.appendChild(createItem(cmd, app));
   }
 
-  for (const [groupName, entries] of validSubmenus) {
-    const valid = entries.filter((e) => e.commandId || e.isSeparator);
-    menu.appendChild(createGroup(groupName, valid, app));
+  for (const section of validSubmenus) {
+    const valid = section.entries.filter((e) => e.commandId || e.isSeparator);
+    menu.appendChild(createGroup(section, valid, app));
   }
 
   return menu;
@@ -126,25 +126,36 @@ function createItem(entry: ScriptEntry, app: App): HTMLElement {
   return item;
 }
 
-function createGroup(name: string, entries: ScriptEntry[], app: App): HTMLElement {
+function createGroup(section: SubmenuSection, entries: ScriptEntry[], app: App): HTMLElement {
   const group = document.createElement("div");
   group.className = "sm-menu-group";
 
   const trigger = document.createElement("div");
   trigger.className = "sm-menu-item sm-group-trigger";
-  trigger.createSpan({ cls: "sm-menu-item-label", text: name });
+  if (section.color) trigger.style.color = section.color;
+  if (section.icon) {
+    const iconEl = trigger.createSpan({ cls: "sm-menu-item-icon" });
+    if (section.color) iconEl.style.color = section.color;
+    try { setIcon(iconEl, section.icon); } catch {}
+  }
+  trigger.createSpan({ cls: "sm-menu-item-label", text: section.label });
 
   const arrow = trigger.createSpan({ cls: "sm-group-arrow" });
   setIcon(arrow, "chevron-right");
 
   const submenu = document.createElement("div");
   submenu.className = "sm-submenu";
+  submenu.setAttribute("data-sm-menu", "");
+  submenu.style.position = "fixed";
+  submenu.style.zIndex = "calc(var(--layer-menu) + 2)";
+
   for (const entry of entries) {
     submenu.appendChild(createItem(entry, app));
   }
 
+  submenu.addEventListener("click", (e) => e.stopPropagation());
+
   group.appendChild(trigger);
-  group.appendChild(submenu);
 
   let hideTimeout: number | null = null;
   let showTimeout: number | null = null;
@@ -156,11 +167,34 @@ function createGroup(name: string, entries: ScriptEntry[], app: App): HTMLElemen
     group.dataset.smTimeouts = ids.join(",");
   };
 
+  const positionAndShow = () => {
+    document.body.appendChild(submenu);
+    computePosition(trigger, submenu, {
+      placement: "right-start",
+      middleware: [
+        offset(4),
+        flip({ padding: 10 }),
+        shift({ padding: 10 }),
+        size({
+          apply({ availableHeight }) {
+            submenu.style.maxHeight = `${Math.max(Math.min(availableHeight - 16, 600), 100)}px`;
+            submenu.style.overflowY = "auto";
+          },
+          padding: 8,
+        }),
+      ],
+    }).then(({ x, y }) => {
+      submenu.style.left = `${Math.floor(x)}px`;
+      submenu.style.top = `${Math.floor(y)}px`;
+      submenu.classList.add("sm-submenu-visible");
+    });
+  };
+
   const show = () => {
     if (hideTimeout !== null) clearTimeout(hideTimeout);
     if (showTimeout !== null) clearTimeout(showTimeout);
     showTimeout = window.setTimeout(() => {
-      submenu.classList.add("sm-submenu-visible");
+      positionAndShow();
       showTimeout = null;
       saveTimeouts();
     }, 150);
@@ -172,6 +206,7 @@ function createGroup(name: string, entries: ScriptEntry[], app: App): HTMLElemen
     if (hideTimeout !== null) clearTimeout(hideTimeout);
     hideTimeout = window.setTimeout(() => {
       submenu.classList.remove("sm-submenu-visible");
+      if (submenu.parentElement) submenu.remove();
       hideTimeout = null;
       saveTimeouts();
     }, 200);
