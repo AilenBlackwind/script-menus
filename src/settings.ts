@@ -2,6 +2,24 @@ import { PluginSettingTab, Setting, App, setIcon } from "obsidian";
 import { CommandSuggestModal, IconSuggestModal } from "./modal";
 import type ScriptMenusPlugin from "./main";
 
+let _defaultColor: string | null = null;
+
+function getDefaultColor(): string {
+  if (_defaultColor) return _defaultColor;
+  const temp = document.createElement("div");
+  temp.style.color = "var(--text-normal)";
+  document.body.appendChild(temp);
+  const rgb = getComputedStyle(temp).color;
+  temp.remove();
+  const m = rgb.match(/\d+/g);
+  if (m && m.length >= 3) {
+    _defaultColor = "#" + [0, 1, 2].map(i => parseInt(m[i]).toString(16).padStart(2, "0")).join("");
+  } else {
+    _defaultColor = "#000000";
+  }
+  return _defaultColor;
+}
+
 export interface ScriptEntry {
   label: string;
   commandId: string;
@@ -220,7 +238,7 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
         };
 
         const colorInput = headerRow.createEl("input", { type: "color" });
-        colorInput.value = section.color || "#000000";
+        colorInput.value = section.color || getDefaultColor();
         colorInput.title = "Section color";
         colorInput.style.cssText = "width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
         colorInput.onchange = () => {
@@ -233,7 +251,7 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
         clearColorBtn.style.cssText = "width: 18px; height: 22px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
         clearColorBtn.onclick = async () => {
           section.color = undefined;
-          colorInput.value = "#000000";
+          colorInput.value = getDefaultColor();
           this.plugin.saveSettings();
         };
 
@@ -437,7 +455,7 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
     };
 
     const colorInput = row.createEl("input", { type: "color" });
-    colorInput.value = list[index].color || "#000000";
+    colorInput.value = list[index].color || getDefaultColor();
     colorInput.title = "Item color";
     colorInput.style.cssText = "width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
     colorInput.onchange = () => {
@@ -450,7 +468,7 @@ export class ScriptMenusSettingTab extends PluginSettingTab {
     clearColorBtn.style.cssText = "width: 20px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
     clearColorBtn.onclick = async () => {
       list[index].color = undefined;
-      colorInput.value = "#000000";
+      colorInput.value = getDefaultColor();
       this.plugin.saveSettings();
     };
 

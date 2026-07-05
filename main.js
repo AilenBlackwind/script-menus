@@ -1538,6 +1538,23 @@ var IconSuggestModal = class extends import_obsidian.FuzzySuggestModal {
 };
 
 // src/settings.ts
+var _defaultColor = null;
+function getDefaultColor() {
+  if (_defaultColor)
+    return _defaultColor;
+  const temp = document.createElement("div");
+  temp.style.color = "var(--text-normal)";
+  document.body.appendChild(temp);
+  const rgb = getComputedStyle(temp).color;
+  temp.remove();
+  const m = rgb.match(/\d+/g);
+  if (m && m.length >= 3) {
+    _defaultColor = "#" + [0, 1, 2].map((i) => parseInt(m[i]).toString(16).padStart(2, "0")).join("");
+  } else {
+    _defaultColor = "#000000";
+  }
+  return _defaultColor;
+}
 var DEFAULT_SETTINGS = {
   profiles: [
     {
@@ -1690,7 +1707,7 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
           }).open();
         };
         const colorInput = headerRow.createEl("input", { type: "color" });
-        colorInput.value = section.color || "#000000";
+        colorInput.value = section.color || getDefaultColor();
         colorInput.title = "Section color";
         colorInput.style.cssText = "width: 22px; height: 22px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
         colorInput.onchange = () => {
@@ -1702,7 +1719,7 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
         clearColorBtn.style.cssText = "width: 18px; height: 22px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
         clearColorBtn.onclick = async () => {
           section.color = void 0;
-          colorInput.value = "#000000";
+          colorInput.value = getDefaultColor();
           this.plugin.saveSettings();
         };
         const title = headerRow.createEl("input", { type: "text", value: section.label });
@@ -1879,7 +1896,7 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
       }).open();
     };
     const colorInput = row.createEl("input", { type: "color" });
-    colorInput.value = list[index].color || "#000000";
+    colorInput.value = list[index].color || getDefaultColor();
     colorInput.title = "Item color";
     colorInput.style.cssText = "width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; flex-shrink: 0;";
     colorInput.onchange = () => {
@@ -1891,7 +1908,7 @@ var ScriptMenusSettingTab = class extends import_obsidian2.PluginSettingTab {
     clearColorBtn.style.cssText = "width: 20px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;";
     clearColorBtn.onclick = async () => {
       list[index].color = void 0;
-      colorInput.value = "#000000";
+      colorInput.value = getDefaultColor();
       this.plugin.saveSettings();
     };
     const cmdInput = row.createEl("input", { type: "text" });
