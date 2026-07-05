@@ -3483,6 +3483,15 @@ var ScriptMenusPlugin = class extends import_obsidian4.Plugin {
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    for (const profile of this.settings.profiles) {
+      if (profile.submenus && !Array.isArray(profile.submenus)) {
+        const old = profile.submenus;
+        profile.submenus = Object.entries(old).map(([label, entries]) => ({
+          label,
+          entries: entries || []
+        }));
+      }
+    }
   }
   async saveSettings() {
     await this.saveData(this.settings);

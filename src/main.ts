@@ -1,6 +1,6 @@
 import { Plugin, MarkdownView } from "obsidian";
 import { DEFAULT_SETTINGS, ScriptMenusSettingTab } from "./settings";
-import type { PluginSettings } from "./settings";
+import type { PluginSettings, ScriptEntry } from "./settings";
 import { showContextMenu, dismissAllMenus } from "./context-menu";
 
 export default class ScriptMenusPlugin extends Plugin {
@@ -41,6 +41,15 @@ export default class ScriptMenusPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    for (const profile of this.settings.profiles) {
+      if (profile.submenus && !Array.isArray(profile.submenus)) {
+        const old = profile.submenus as any;
+        profile.submenus = Object.entries(old).map(([label, entries]) => ({
+          label,
+          entries: (entries as ScriptEntry[]) || [],
+        }));
+      }
+    }
   }
 
   async saveSettings(): Promise<void> {
