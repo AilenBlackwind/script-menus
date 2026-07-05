@@ -3354,6 +3354,7 @@ function createGroup(section, entries, app) {
   }
   submenu.addEventListener("click", (e) => e.stopPropagation());
   group.appendChild(trigger);
+  document.body.appendChild(submenu);
   let hideTimeout = null;
   let showTimeout = null;
   const saveTimeouts = () => {
@@ -3365,7 +3366,6 @@ function createGroup(section, entries, app) {
     group.dataset.smTimeouts = ids.join(",");
   };
   const positionAndShow = () => {
-    document.body.appendChild(submenu);
     computePosition2(trigger, submenu, {
       placement: "right-start",
       strategy: "fixed",
@@ -3406,8 +3406,6 @@ function createGroup(section, entries, app) {
       clearTimeout(hideTimeout);
     hideTimeout = window.setTimeout(() => {
       submenu.classList.remove("sm-submenu-visible");
-      if (submenu.parentElement)
-        submenu.remove();
       hideTimeout = null;
       saveTimeouts();
     }, 200);
