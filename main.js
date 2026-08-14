@@ -3490,14 +3490,15 @@ var ScriptMenusPlugin = class extends import_obsidian4.Plugin {
     this.addSettingTab(new ScriptMenusSettingTab(this.app, this));
     this.registerWindow(document, this.app.workspace);
     this.registerEvent(
-      this.app.workspace.on("window-open", (win) => {
-        var _a;
-        this.registerWindow(win.document, (_a = win.workspace) != null ? _a : this.app.workspace);
+      this.app.workspace.on("window-open", (ww, window2) => {
+        var _a, _b;
+        const workspace = (_b = (_a = ww.workspace) != null ? _a : window2.workspace) != null ? _b : this.app.workspace;
+        this.registerWindow(ww.doc, workspace);
       })
     );
     this.registerEvent(
-      this.app.workspace.on("window-close", (win) => {
-        this.activeDocs = this.activeDocs.filter((d) => d !== win.document);
+      this.app.workspace.on("window-close", (ww) => {
+        this.activeDocs = this.activeDocs.filter((d) => d !== ww.doc);
         setActiveDocuments(this.activeDocs);
       })
     );
@@ -3509,8 +3510,11 @@ var ScriptMenusPlugin = class extends import_obsidian4.Plugin {
     }
     setActiveDocuments(this.activeDocs);
     this.registerDomEvent(doc, "contextmenu", (ev) => {
+      var _a, _b;
       dismissAllMenus();
-      const view = workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+      const win = activeWindow != null ? activeWindow : window;
+      const ws = (_b = (_a = win.workspace) != null ? _a : workspace) != null ? _b : this.app.workspace;
+      const view = ws.getActiveViewOfType(import_obsidian4.MarkdownView);
       if (!view)
         return;
       if (view.getMode() !== "source")

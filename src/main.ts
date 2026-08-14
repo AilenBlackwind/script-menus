@@ -1,5 +1,5 @@
 import { Plugin, MarkdownView } from "obsidian";
-import type { Workspace } from "obsidian";
+import type { Workspace, WorkspaceWindow } from "obsidian";
 import { DEFAULT_SETTINGS, ScriptMenusSettingTab } from "./settings";
 import type { PluginSettings, ScriptEntry } from "./settings";
 import { showContextMenu, dismissAllMenus, setActiveDocuments } from "./context-menu";
@@ -16,14 +16,15 @@ export default class ScriptMenusPlugin extends Plugin {
     this.registerWindow(document, this.app.workspace);
 
     this.registerEvent(
-      this.app.workspace.on("window-open", (win: Window) => {
-        this.registerWindow(win.document, (win as any).workspace ?? this.app.workspace);
+      this.app.workspace.on("window-open", (ww: WorkspaceWindow, window: Window) => {
+        const workspace = (ww as any).workspace ?? (window as any).workspace ?? this.app.workspace;
+        this.registerWindow(ww.doc, workspace);
       })
     );
 
     this.registerEvent(
-      this.app.workspace.on("window-close", (win: Window) => {
-        this.activeDocs = this.activeDocs.filter((d) => d !== win.document);
+      this.app.workspace.on("window-close", (ww: WorkspaceWindow) => {
+        this.activeDocs = this.activeDocs.filter((d) => d !== ww.doc);
         setActiveDocuments(this.activeDocs);
       })
     );
@@ -39,7 +40,9 @@ export default class ScriptMenusPlugin extends Plugin {
 
     this.registerDomEvent(doc, "contextmenu", (ev: MouseEvent) => {
       dismissAllMenus();
-      const view = workspace.getActiveViewOfType(MarkdownView);
+      const win = activeWindow ?? window;
+      const ws = ((win as any).workspace as Workspace) ?? workspace ?? this.app.workspace;
+      const view = ws.getActiveViewOfType(MarkdownView);
       if (!view) return;
       if (view.getMode() !== "source") return;
 
