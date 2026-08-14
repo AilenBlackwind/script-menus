@@ -3231,19 +3231,28 @@ var computePosition2 = (reference, floating, options) => {
 };
 
 // src/context-menu.ts
+var allDocs = [];
+function setActiveDocuments(docs) {
+  allDocs = docs;
+}
 function dismissAllMenus() {
-  const menus = document.querySelectorAll("[data-sm-menu]");
-  Array.from(menus).forEach((el) => {
-    const smEl = el;
-    clearTimeouts(smEl);
-    const markDismissed = smEl._smDismissed;
-    if (markDismissed)
-      markDismissed();
-    const cleanup = smEl._smCleanup;
-    if (cleanup)
-      cleanup();
-    smEl.remove();
-  });
+  const docs = allDocs.length ? allDocs : [document];
+  for (const doc of docs) {
+    if (!doc || !doc.body)
+      continue;
+    const menus = doc.querySelectorAll("[data-sm-menu]");
+    Array.from(menus).forEach((el) => {
+      const smEl = el;
+      clearTimeouts(smEl);
+      const markDismissed = smEl._smDismissed;
+      if (markDismissed)
+        markDismissed();
+      const cleanup = smEl._smCleanup;
+      if (cleanup)
+        cleanup();
+      smEl.remove();
+    });
+  }
 }
 function clearTimeouts(el) {
   const groups = el.querySelectorAll("[data-sm-timeouts]");
@@ -3258,14 +3267,14 @@ function clearTimeouts(el) {
     }
   });
 }
-function showContextMenu(ev, profile, app) {
+function showContextMenu(ev, profile, app, doc) {
   dismissAllMenus();
-  const bodyZoom = parseFloat(document.body.style.zoom) || 1;
+  const bodyZoom = parseFloat(doc.body.style.zoom) || 1;
   const x = ev.clientX / bodyZoom;
   const y = ev.clientY / bodyZoom;
-  const menuEl = buildMenu(profile, app);
+  const menuEl = buildMenu(profile, app, doc);
   menuEl.setAttribute("data-sm-menu", "");
-  document.body.appendChild(menuEl);
+  doc.body.appendChild(menuEl);
   let dismissed = false;
   menuEl._smDismissed = () => dismissed = true;
   const virtualEl = {
@@ -3292,10 +3301,10 @@ function showContextMenu(ev, profile, app) {
     menuEl.style.left = `${Math.floor(fx)}px`;
     menuEl.style.top = `${Math.floor(fy)}px`;
   });
-  const cleanup = registerDismissHandlers(menuEl);
+  const cleanup = registerDismissHandlers(doc, menuEl);
   menuEl._smCleanup = cleanup;
 }
-function buildMenu(profile, app) {
+function buildMenu(profile, app, doc) {
   const menu = document.createElement("div");
   menu.className = "sm-menu";
   const validMain = profile.mainMenuCommands.filter((e) => e.commandId || e.isSeparator);
@@ -3312,7 +3321,7 @@ function buildMenu(profile, app) {
   }
   for (const section of validSubmenus) {
     const valid = section.entries.filter((e) => e.commandId || e.isSeparator);
-    menu.appendChild(createGroup(section, valid, app));
+    menu.appendChild(createGroup(section, valid, app, doc));
   }
   return menu;
 }
@@ -3342,7 +3351,7 @@ function createItem(entry, app) {
   });
   return item;
 }
-function createGroup(section, entries, app) {
+function createGroup(section, entries, app, doc) {
   const group = document.createElement("div");
   group.className = "sm-menu-group";
   const trigger = document.createElement("div");
@@ -3371,7 +3380,7 @@ function createGroup(section, entries, app) {
   }
   submenu.addEventListener("click", (e) => e.stopPropagation());
   group.appendChild(trigger);
-  document.body.appendChild(submenu);
+  doc.body.appendChild(submenu);
   let hideTimeout = null;
   let showTimeout = null;
   const saveTimeouts = () => {
@@ -3453,7 +3462,7 @@ function createSeparator() {
   sep.className = "sm-menu-separator";
   return sep;
 }
-function registerDismissHandlers(menuEl) {
+function registerDismissHandlers(doc, menuEl) {
   const onKeyDown = (e) => {
     if (e.key === "Escape")
       dismissAllMenus();
@@ -3462,22 +3471,46 @@ function registerDismissHandlers(menuEl) {
     if (!menuEl.contains(e.target))
       dismissAllMenus();
   };
-  document.addEventListener("keydown", onKeyDown, true);
-  document.addEventListener("click", onClick, true);
+  doc.addEventListener("keydown", onKeyDown, true);
+  doc.addEventListener("click", onClick, true);
   return () => {
-    document.removeEventListener("keydown", onKeyDown, true);
-    document.removeEventListener("click", onClick, true);
+    doc.removeEventListener("keydown", onKeyDown, true);
+    doc.removeEventListener("click", onClick, true);
   };
 }
 
 // src/main.ts
 var ScriptMenusPlugin = class extends import_obsidian4.Plugin {
+  constructor() {
+    super(...arguments);
+    this.activeDocs = [];
+  }
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new ScriptMenusSettingTab(this.app, this));
-    this.registerDomEvent(document, "contextmenu", (ev) => {
+    this.registerWindow(document, this.app.workspace);
+    this.registerEvent(
+      this.app.workspace.on("window-open", (win) => {
+        var _a;
+        this.registerWindow(win.document, (_a = win.workspace) != null ? _a : this.app.workspace);
+      })
+    );
+    this.registerEvent(
+      this.app.workspace.on("window-close", (win) => {
+        this.activeDocs = this.activeDocs.filter((d) => d !== win.document);
+        setActiveDocuments(this.activeDocs);
+      })
+    );
+    setActiveDocuments(this.activeDocs);
+  }
+  registerWindow(doc, workspace) {
+    if (!this.activeDocs.includes(doc)) {
+      this.activeDocs.push(doc);
+    }
+    setActiveDocuments(this.activeDocs);
+    this.registerDomEvent(doc, "contextmenu", (ev) => {
       dismissAllMenus();
-      const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+      const view = workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
       if (!view)
         return;
       if (view.getMode() !== "source")
@@ -3487,7 +3520,7 @@ var ScriptMenusPlugin = class extends import_obsidian4.Plugin {
           if (ev.altKey === profile.modifiers.alt && ev.ctrlKey === profile.modifiers.ctrl && ev.shiftKey === profile.modifiers.shift && ev.metaKey === profile.modifiers.meta) {
             ev.preventDefault();
             ev.stopPropagation();
-            showContextMenu(ev, profile, this.app);
+            showContextMenu(ev, profile, this.app, doc);
             return;
           }
         }

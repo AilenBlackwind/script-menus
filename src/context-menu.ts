@@ -2,17 +2,27 @@ import { App, setIcon } from "obsidian";
 import { computePosition, flip, shift, offset, size } from "@floating-ui/dom";
 import type { MenuProfile, ScriptEntry, SubmenuSection } from "./settings";
 
+let allDocs: Document[] = [];
+
+export function setActiveDocuments(docs: Document[]): void {
+  allDocs = docs;
+}
+
 export function dismissAllMenus(): void {
-  const menus = document.querySelectorAll("[data-sm-menu]");
-  Array.from(menus).forEach((el) => {
-    const smEl = el as HTMLElement;
-    clearTimeouts(smEl);
-    const markDismissed = (smEl as any)._smDismissed as (() => void) | undefined;
-    if (markDismissed) markDismissed();
-    const cleanup = (smEl as any)._smCleanup as (() => void) | undefined;
-    if (cleanup) cleanup();
-    smEl.remove();
-  });
+  const docs = allDocs.length ? allDocs : [document];
+  for (const doc of docs) {
+    if (!doc || !doc.body) continue;
+    const menus = doc.querySelectorAll("[data-sm-menu]");
+    Array.from(menus).forEach((el) => {
+      const smEl = el as HTMLElement;
+      clearTimeouts(smEl);
+      const markDismissed = (smEl as any)._smDismissed as (() => void) | undefined;
+      if (markDismissed) markDismissed();
+      const cleanup = (smEl as any)._smCleanup as (() => void) | undefined;
+      if (cleanup) cleanup();
+      smEl.remove();
+    });
+  }
 }
 
 function clearTimeouts(el: HTMLElement): void {
@@ -28,15 +38,15 @@ function clearTimeouts(el: HTMLElement): void {
   });
 }
 
-export function showContextMenu(ev: MouseEvent, profile: MenuProfile, app: App): void {
+export function showContextMenu(ev: MouseEvent, profile: MenuProfile, app: App, doc: Document): void {
   dismissAllMenus();
-  const bodyZoom = parseFloat((document.body.style as any).zoom) || 1;
+  const bodyZoom = parseFloat((doc.body.style as any).zoom) || 1;
   const x = ev.clientX / bodyZoom;
   const y = ev.clientY / bodyZoom;
 
-  const menuEl = buildMenu(profile, app);
+  const menuEl = buildMenu(profile, app, doc);
   menuEl.setAttribute("data-sm-menu", "");
-  document.body.appendChild(menuEl);
+  doc.body.appendChild(menuEl);
 
   let dismissed = false;
   (menuEl as any)._smDismissed = () => (dismissed = true);
@@ -66,11 +76,11 @@ export function showContextMenu(ev: MouseEvent, profile: MenuProfile, app: App):
     menuEl.style.top = `${Math.floor(fy)}px`;
   });
 
-  const cleanup = registerDismissHandlers(menuEl);
+  const cleanup = registerDismissHandlers(doc, menuEl);
   (menuEl as any)._smCleanup = cleanup;
 }
 
-function buildMenu(profile: MenuProfile, app: App): HTMLElement {
+function buildMenu(profile: MenuProfile, app: App, doc: Document): HTMLElement {
   const menu = document.createElement("div");
   menu.className = "sm-menu";
 
@@ -92,7 +102,7 @@ function buildMenu(profile: MenuProfile, app: App): HTMLElement {
 
   for (const section of validSubmenus) {
     const valid = section.entries.filter((e) => e.commandId || e.isSeparator);
-    menu.appendChild(createGroup(section, valid, app));
+    menu.appendChild(createGroup(section, valid, app, doc));
   }
 
   return menu;
@@ -127,7 +137,7 @@ function createItem(entry: ScriptEntry, app: App): HTMLElement {
   return item;
 }
 
-function createGroup(section: SubmenuSection, entries: ScriptEntry[], app: App): HTMLElement {
+function createGroup(section: SubmenuSection, entries: ScriptEntry[], app: App, doc: Document): HTMLElement {
   const group = document.createElement("div");
   group.className = "sm-menu-group";
 
@@ -157,7 +167,7 @@ function createGroup(section: SubmenuSection, entries: ScriptEntry[], app: App):
   submenu.addEventListener("click", (e) => e.stopPropagation());
 
   group.appendChild(trigger);
-  document.body.appendChild(submenu);
+  doc.body.appendChild(submenu);
 
   let hideTimeout: number | null = null;
   let showTimeout: number | null = null;
@@ -240,7 +250,7 @@ function createSeparator(): HTMLElement {
   return sep;
 }
 
-function registerDismissHandlers(menuEl: HTMLElement): () => void {
+function registerDismissHandlers(doc: Document, menuEl: HTMLElement): () => void {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape") dismissAllMenus();
   };
@@ -249,11 +259,11 @@ function registerDismissHandlers(menuEl: HTMLElement): () => void {
     if (!menuEl.contains(e.target as Node)) dismissAllMenus();
   };
 
-  document.addEventListener("keydown", onKeyDown, true);
-  document.addEventListener("click", onClick, true);
+  doc.addEventListener("keydown", onKeyDown, true);
+  doc.addEventListener("click", onClick, true);
 
   return () => {
-    document.removeEventListener("keydown", onKeyDown, true);
-    document.removeEventListener("click", onClick, true);
+    doc.removeEventListener("keydown", onKeyDown, true);
+    doc.removeEventListener("click", onClick, true);
   };
 }

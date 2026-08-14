@@ -1,19 +1,45 @@
 import { Plugin, MarkdownView } from "obsidian";
+import type { Workspace } from "obsidian";
 import { DEFAULT_SETTINGS, ScriptMenusSettingTab } from "./settings";
 import type { PluginSettings, ScriptEntry } from "./settings";
-import { showContextMenu, dismissAllMenus } from "./context-menu";
+import { showContextMenu, dismissAllMenus, setActiveDocuments } from "./context-menu";
 
 export default class ScriptMenusPlugin extends Plugin {
   settings: PluginSettings;
+  private activeDocs: Document[] = [];
 
   async onload(): Promise<void> {
     await this.loadSettings();
 
     this.addSettingTab(new ScriptMenusSettingTab(this.app, this));
 
-    this.registerDomEvent(document, "contextmenu", (ev: MouseEvent) => {
+    this.registerWindow(document, this.app.workspace);
+
+    this.registerEvent(
+      this.app.workspace.on("window-open", (win: Window) => {
+        this.registerWindow(win.document, (win as any).workspace ?? this.app.workspace);
+      })
+    );
+
+    this.registerEvent(
+      this.app.workspace.on("window-close", (win: Window) => {
+        this.activeDocs = this.activeDocs.filter((d) => d !== win.document);
+        setActiveDocuments(this.activeDocs);
+      })
+    );
+
+    setActiveDocuments(this.activeDocs);
+  }
+
+  private registerWindow(doc: Document, workspace: Workspace): void {
+    if (!this.activeDocs.includes(doc)) {
+      this.activeDocs.push(doc);
+    }
+    setActiveDocuments(this.activeDocs);
+
+    this.registerDomEvent(doc, "contextmenu", (ev: MouseEvent) => {
       dismissAllMenus();
-      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      const view = workspace.getActiveViewOfType(MarkdownView);
       if (!view) return;
       if (view.getMode() !== "source") return;
 
@@ -27,7 +53,7 @@ export default class ScriptMenusPlugin extends Plugin {
           ) {
             ev.preventDefault();
             ev.stopPropagation();
-            showContextMenu(ev, profile, this.app);
+            showContextMenu(ev, profile, this.app, doc);
             return;
           }
         }
